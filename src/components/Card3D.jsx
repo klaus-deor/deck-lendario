@@ -1,41 +1,62 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import './Card3D.css'
 
 const Card3D = () => {
   const [rotation, setRotation] = useState({ x: 0, y: 0 })
   const [isHovering, setIsHovering] = useState(false)
   const cardRef = useRef(null)
+  const animationRef = useRef(null)
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return
 
-    const card = cardRef.current
-    const rect = card.getBoundingClientRect()
-    const centerX = rect.left + rect.width / 2
-    const centerY = rect.top + rect.height / 2
+    // Cancelar animação anterior se existir
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current)
+    }
 
-    const mouseX = e.clientX - centerX
-    const mouseY = e.clientY - centerY
+    animationRef.current = requestAnimationFrame(() => {
+      const card = cardRef.current
+      if (!card) return
 
-    // Calcular rotação baseada na posição do mouse
-    // Limitando a rotação a 90 graus para cada lado
-    const rotateY = (mouseX / (rect.width / 2)) * 45 // 45 graus máximo para cada lado
-    const rotateX = -(mouseY / (rect.height / 2)) * 45 // 45 graus máximo para cima/baixo
+      const rect = card.getBoundingClientRect()
+      const centerX = rect.left + rect.width / 2
+      const centerY = rect.top + rect.height / 2
 
-    setRotation({
-      x: Math.max(-45, Math.min(45, rotateX)),
-      y: Math.max(-45, Math.min(45, rotateY))
+      const mouseX = e.clientX - centerX
+      const mouseY = e.clientY - centerY
+
+      // Calcular rotação com suavização
+      const maxRotation = 35 // Reduzido de 45 para 35 graus
+      const rotateY = (mouseX / (rect.width / 2)) * maxRotation
+      const rotateX = -(mouseY / (rect.height / 2)) * maxRotation
+
+      // Aplicar limites suaves
+      const clampedRotateX = Math.max(-maxRotation, Math.min(maxRotation, rotateX))
+      const clampedRotateY = Math.max(-maxRotation, Math.min(maxRotation, rotateY))
+
+      setRotation({
+        x: clampedRotateX,
+        y: clampedRotateY
+      })
     })
-  }
+  }, [])
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     setIsHovering(false)
-    setRotation({ x: 0, y: 0 })
-  }
+    
+    // Cancelar qualquer animação pendente
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current)
+    }
 
-  const handleMouseEnter = () => {
+    // Retornar suavemente à posição original
+    setRotation({ x: 0, y: 0 })
+  }, [])
+
+  const handleMouseEnter = useCallback(() => {
     setIsHovering(true)
-  }
+  }, [])
 
   return (
     <div className="card-container">
