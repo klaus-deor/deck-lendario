@@ -3,12 +3,17 @@ import './Card3D.css'
 
 const Card3D = () => {
   const [rotation, setRotation] = useState({ x: 0, y: 0 })
-  const [isHovering, setIsHovering] = useState(false)
+  const [isMouseInScreen, setIsMouseInScreen] = useState(false)
   const cardRef = useRef(null)
   const animationRef = useRef(null)
 
   const handleMouseMove = useCallback((e) => {
     if (!cardRef.current) return
+
+    // Mouse está na tela, ativar brilho
+    if (!isMouseInScreen) {
+      setIsMouseInScreen(true)
+    }
 
     // Cancelar animação anterior se existir
     if (animationRef.current) {
@@ -27,18 +32,10 @@ const Card3D = () => {
       const mouseX = e.clientX - centerX
       const mouseY = e.clientY - centerY
 
-      // Calcular se o mouse está próximo da carta para ativar hover
+      // Calcular distância para influência na rotação
       const distanceFromCard = Math.sqrt(mouseX * mouseX + mouseY * mouseY)
       const cardRadius = Math.max(rect.width, rect.height) / 2
-      const hoverRadius = cardRadius + 100 // 100px de margem extra
-
-      // Ativar hover quando próximo da carta
-      if (distanceFromCard <= hoverRadius && !isHovering) {
-        setIsHovering(true)
-      } else if (distanceFromCard > hoverRadius && isHovering) {
-        setIsHovering(false)
-      }
-
+      
       // Calcular rotação baseada na distância da carta
       const maxRotation = 35
       const influence = Math.max(0, 1 - (distanceFromCard / (cardRadius * 2)))
@@ -55,10 +52,11 @@ const Card3D = () => {
         y: clampedRotateY
       })
     })
-  }, [isHovering])
+  }, [isMouseInScreen])
 
   const handleMouseLeave = useCallback(() => {
-    setIsHovering(false)
+    // Mouse saiu da tela, desativar brilho
+    setIsMouseInScreen(false)
     
     // Cancelar qualquer animação pendente
     if (animationRef.current) {
@@ -67,6 +65,11 @@ const Card3D = () => {
 
     // Retornar suavemente à posição original
     setRotation({ x: 0, y: 0 })
+  }, [])
+
+  const handleMouseEnter = useCallback(() => {
+    // Mouse entrou na tela, ativar brilho
+    setIsMouseInScreen(true)
   }, [])
 
   // Adicionar event listener global para movimento do mouse
@@ -78,23 +81,25 @@ const Card3D = () => {
     // Adicionar listener na window inteira
     window.addEventListener('mousemove', handleGlobalMouseMove)
     window.addEventListener('mouseleave', handleMouseLeave)
+    window.addEventListener('mouseenter', handleMouseEnter)
 
     return () => {
       window.removeEventListener('mousemove', handleGlobalMouseMove)
       window.removeEventListener('mouseleave', handleMouseLeave)
+      window.removeEventListener('mouseenter', handleMouseEnter)
       
       // Limpar animação pendente
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [handleMouseMove, handleMouseLeave])
+  }, [handleMouseMove, handleMouseLeave, handleMouseEnter])
 
   return (
     <div className="card-container">
       <div
         ref={cardRef}
-        className={`card ${isHovering ? 'hovering' : ''}`}
+        className={`card ${isMouseInScreen ? 'hovering' : ''}`}
         style={{
           transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`
         }}
@@ -102,7 +107,7 @@ const Card3D = () => {
         <div className="card-inner">
           <div className="card-front">
             <img 
-              src="/klaus-card.png" 
+              src="/klaus-card.jpg" 
               alt="Klaus Deor Card" 
               draggable={false}
             />
