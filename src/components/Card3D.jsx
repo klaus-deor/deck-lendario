@@ -11,9 +11,7 @@ const Card3D = () => {
     if (!cardRef.current) return
 
     // Mouse está na tela, ativar brilho
-    if (!isMouseInScreen) {
-      setIsMouseInScreen(true)
-    }
+    setIsMouseInScreen(true)
 
     // Cancelar animação anterior se existir
     if (animationRef.current) {
@@ -52,10 +50,10 @@ const Card3D = () => {
         y: clampedRotateY
       })
     })
-  }, [isMouseInScreen])
+  }, [])
 
   const handleMouseLeave = useCallback(() => {
-    // Mouse saiu da tela, desativar brilho
+    // Mouse saiu da tela, desativar brilho IMEDIATAMENTE
     setIsMouseInScreen(false)
     
     // Cancelar qualquer animação pendente
@@ -67,33 +65,52 @@ const Card3D = () => {
     setRotation({ x: 0, y: 0 })
   }, [])
 
-  const handleMouseEnter = useCallback(() => {
-    // Mouse entrou na tela, ativar brilho
-    setIsMouseInScreen(true)
-  }, [])
-
   // Adicionar event listener global para movimento do mouse
   useEffect(() => {
-    const handleGlobalMouseMove = (e) => {
-      handleMouseMove(e)
+    // Listener para detectar quando mouse entra na tela
+    const handleDocumentMouseEnter = () => {
+      setIsMouseInScreen(true)
     }
 
-    // Adicionar listener na window inteira
-    window.addEventListener('mousemove', handleGlobalMouseMove)
-    window.addEventListener('mouseleave', handleMouseLeave)
-    window.addEventListener('mouseenter', handleMouseEnter)
+    // Listener para detectar quando mouse sai da tela
+    const handleDocumentMouseLeave = () => {
+      setIsMouseInScreen(false)
+      setRotation({ x: 0, y: 0 })
+      
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+      }
+    }
+
+    // Adicionar listeners no document para capturar entrada/saída corretamente
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseleave', handleDocumentMouseLeave)
+    document.addEventListener('mouseenter', handleDocumentMouseEnter)
+    
+    // Listener adicional na window para garantir que capture saída da tela
+    window.addEventListener('mouseout', (e) => {
+      // Verificar se o mouse realmente saiu da janela
+      if (!e.relatedTarget || e.relatedTarget === null) {
+        setIsMouseInScreen(false)
+        setRotation({ x: 0, y: 0 })
+        
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current)
+        }
+      }
+    })
 
     return () => {
-      window.removeEventListener('mousemove', handleGlobalMouseMove)
-      window.removeEventListener('mouseleave', handleMouseLeave)
-      window.removeEventListener('mouseenter', handleMouseEnter)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseleave', handleDocumentMouseLeave)
+      document.removeEventListener('mouseenter', handleDocumentMouseEnter)
       
       // Limpar animação pendente
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [handleMouseMove, handleMouseLeave, handleMouseEnter])
+  }, [handleMouseMove])
 
   return (
     <div className="card-container">
