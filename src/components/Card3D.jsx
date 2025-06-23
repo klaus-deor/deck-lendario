@@ -102,7 +102,7 @@ const Card3D = () => {
         <div className="card-inner">
           <div className="card-front">
             <img 
-              src="/klaus-card.jpg" 
+              src="/klaus-card.png" 
               alt="Klaus Deor Card" 
               draggable={false}
             />
